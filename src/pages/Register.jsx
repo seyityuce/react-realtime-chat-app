@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import addAvatar from "../images/addAvatar.png";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth, storage, db } from "../firebase";
+import { auth, db, storage } from "../firebase";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { doc, setDoc } from "firebase/firestore";
 import { useNavigate, Link } from "react-router-dom";
@@ -45,7 +45,7 @@ const Register = () => {
 
             //create empty user chats on firestore
             await setDoc(doc(db, "userChats", res.user.uid), {});
-            navigate("/");
+            navigate("/login");
           } catch (err) {
             console.log(err);
             setErr(true);
@@ -76,7 +76,8 @@ const Register = () => {
             <img src={addAvatar} alt="addAvatar" />
             <span>Add Avatar</span>
           </label>
-          <button>Sign Up</button>
+          <button disabled={loading}>Sign Up</button>
+          {loading && "Uploading and compressing the image please wait..."}
         </form>
         <p>
           Have an account? <Link to="/login">Login</Link>

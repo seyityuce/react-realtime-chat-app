@@ -1,25 +1,29 @@
 import React, { useContext, useState } from "react";
-import imajone from "../images/pexels-mellamed-1133742.jpg";
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   query,
+  serverTimestamp,
   setDoc,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { AuthContext } from "./context/AuthContext";
+import { AuthContext } from "../context/AuthContext";
 
 const Search = () => {
   const [username, setUsername] = useState("");
   const [user, setUser] = useState(null);
   const [err, setErr] = useState(false);
-  const { currentUSer } = useContext(AuthContext);
+
+  const { currentUser } = useContext(AuthContext);
+
   const handleSearch = async () => {
     const q = query(
       collection(db, "users"),
-      where("displayName", "===", username)
+      where("displayName", "==", username)
     );
     try {
       const querySnapshot = await getDocs(q);
@@ -36,30 +40,49 @@ const Search = () => {
 
   const handleSelect = async () => {
     const combinedId =
-      currentUSer.uid > user.uid
-        ? currentUSer.uid + user.uid
-        : user.uid + currentUSer.uid;
+      currentUser.uid > user.uid
+        ? currentUser.uid + user.uid
+        : user.uid + currentUser.uid;
     try {
-      const res = await getDocs(db, "chats", combinedId);
+      const res = await getDoc(doc(db, "chats", combinedId));
+
       if (!res.exists()) {
         //create a chat in chats collection
-        await setDoc(doc, (db, "chats", combinedId), {
-          messages: [],
-        });
+        await setDoc(doc(db, "chats", combinedId), { messages: [] });
         //create user chats
+        await updateDoc(doc(db, "userChats", currentUser.uid), {
+          [combinedId + ".userInfo"]: {
+            uid: user.uid,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+          },
+          [combinedId + ".date"]: serverTimestamp(),
+        });
+        await updateDoc(doc(db, "userChats", user.uid), {
+          [combinedId + ".userInfo"]: {
+            uid: currentUser.uid,
+            displayName: currentUser.displayName,
+            photoURL: currentUser.photoURL,
+          },
+          [combinedId + ".date"]: serverTimestamp(),
+        });
       }
     } catch (err) {
-      console.log();
+      console.log(err);
     }
+    setUser(null);
+    setUsername("");
   };
+
   return (
     <div className="search">
       <div className="search-form">
         <input
           type="text"
           placeholder="search a user"
-          // onKeyDown={handleKey}
+          onKeyDown={handleKey}
           onChange={(e) => setUsername(e.target.value)}
+          value={username}
         />
       </div>
       {err && <span>User not found</span>}
